@@ -1,4 +1,3 @@
-//@ts-check
 const { EmbedBuilder, Guild, Events } = require('discord.js');
 const { create_guild_keys } = require('../ext/ExtFunctions.js');
 const { ExtClient } = require('../ext/ExtClient.js');

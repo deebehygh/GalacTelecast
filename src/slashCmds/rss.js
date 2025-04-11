@@ -2,7 +2,7 @@
 const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits, ChannelType } = require('discord.js');
 const stripTags = require("striptags")
 const { isValidURL, website_status, to } = require('../ext/ExtFunctions.js');
-const { ExtRss } = require('../ext/ExtRss.js')
+const { ExtRss } = require('../ext/ExtRss.js');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -220,7 +220,10 @@ module.exports = {
                 let fList_ = await redis.json.get(`rssGuilds_:${interaction.guildId}:feedList`);
                 let fembed = new EmbedBuilder().setColor('Aqua').setTimestamp().setFooter({ text: ' • Rss' })
                 //let fArray = [];
-
+                if (!fList_) {
+                    fembed.setDescription('No feeds found. Use the `/rss add` command to add a feed.')
+                    return interaction.reply({ embeds: [fembed], ephemeral: true })
+                }
                 for (var [indx, iii] of Object.entries(fList_.feeds)) {
                     let websiteCheck = await website_status(iii.url);
                     if (iii.feedsReceived === undefined) iii.feedsReceived = 0;

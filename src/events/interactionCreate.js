@@ -1,6 +1,4 @@
-//@ts-check
 const { SlashCommandBuilder, EmbedBuilder, BaseInteraction, Events } = require('discord.js');
-const config = require("../config.js");
 
 module.exports = {
 	name: Events.InteractionCreate,
@@ -10,11 +8,11 @@ module.exports = {
 			const command = interaction.client.slashCommands.get(interaction.commandName);
 			if (!command) return;
 
-			if (!config.db.ownerIDs.includes(interaction.user.id))
-				return interaction.reply({ content: 'Currently in maintenance. All services and commands disabled.', ephemeral: true})
+			//if (!config.db.ownerIDs.includes(interaction.user.id))
+				//return interaction.reply({ content: 'Currently in maintenance. All services and commands disabled.', ephemeral: true})
 			try {
-				if (config.list.blackList.includes(interaction.user.id))
-					return interaction.reply({ content: 'You are blacklisted from using Galactic Feeds', ephemeral: true });
+				//if (config.list.blackList.includes(interaction.user.id))
+					//return interaction.reply({ content: 'You are blacklisted from using Galactic Feeds', ephemeral: true });
 				await command.execute(interaction);
 				interaction.client.logger.on_command_used(`[${interaction.guildId}] (${interaction.channel.name}) ${interaction.user.username} used /${interaction.commandName}`)
 			} catch (error) {

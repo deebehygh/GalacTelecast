@@ -33,10 +33,10 @@ module.exports = {
 		switch (interaction.options.getSubcommand()) {
 			case 'setup':
 				var channel = interaction.options.getChannel('channel');
-				if (guildExists >= 1) {
+				if (guildExists) {
 					var errEmbed = new EmbedBuilder()
 						.setTitle('❗Error❗').setAuthor({ name: interaction.user.tag, iconURL: interaction.user.displayAvatarURL() })
-						.setDescription(`Seems you already did the setup. To change your feeds channel, please use the \`/free-eg channel\` command.`).setTimestamp().setFooter({ text: ' • Rss' })
+						.setDescription(`Seems you haven't did the setup. To setup for your free games feed, please use the \`/free-eg setup\` command.`).setTimestamp().setFooter({ text: ' • Rss' })
 					return await interaction.reply({ embeds: [errEmbed], ephemeral: true });
 				}
 
@@ -51,19 +51,21 @@ module.exports = {
 					.setFooter({ text: ' • Epic Games' })
 
 				await redis.sAdd(`epicGuilds_:gList_`, guildId);
-				await redis.hSet(`epicGuilds_:${guildId}.freeEpicGamesSettings`, { online: false, channelId: channel.id, totalNumGamesPosted: 0 })
+				await redis.hSet(`epicGuilds_:${guildId}:freeEpicGamesSettings`, { online: "0" });
+                await redis.hSet(`epicGuilds_:${guildId}:freeEpicGamesSettings`, { channelId: `${channel.id}` });
+                await redis.hSet(`epicGuilds_:${guildId}:freeEpicGamesSettings`, { totalNumGamesPosted: "0" });
 				await interaction.reply({ embeds: [sucEmbed], ephemeral: true })
 				await logger.event(`[${guildId}]: ${interaction.user.tag} created a new Epic Games database file.`);
 				break;
 			case 'channel':
 				var channel = interaction.options.getChannel('channeld')
-				if (guildExists <= 0) {
+				if (!guildExists) {
 					var errEmbed = new EmbedBuilder()
 						.setTitle('❗Error❗').setAuthor({ name: interaction.user.tag, iconURL: interaction.user.displayAvatarURL() })
-						.setDescription(`Seems you already did the setup. To change your feeds channel, please use the \`/free-eg channel\` command.`).setTimestamp().setFooter({ text: ' • Rss' })
+						.setDescription(`Seems you haven't did the setup. To setup for your free games feed, please use the \`/free-eg setup\` command.`).setTimestamp().setFooter({ text: ' • Rss' })
 					return await interaction.reply({ embeds: [errEmbed], ephemeral: true });
 				}
-				await redis.hSet(`epicGuilds_:${guildId}.freeEpicGamesSettings`, { channelId: channel.id })
+				await redis.hSet(`epicGuilds_:${guildId}:freeEpicGamesSettings`, { channelId: channel.id })
 				var channelEmbed = new EmbedBuilder()
 					.setTitle('<:gfeeds:1085657013209534606> Updating Channel Log...')
 					.setAuthor({ name: interaction.user.tag, iconURL: interaction.user.displayAvatarURL() })
@@ -73,13 +75,13 @@ module.exports = {
 				await logger.event(`[${guildId}]: ${interaction.user.tag} changed Epic Games feeds channel to ${channel}`);
 				break;
 			case 'on':
-				if (guildExists <= 0) {
+				if (!guildExists) {
 					var errEmbed = new EmbedBuilder()
 						.setTitle('❗Error❗').setAuthor({ name: interaction.user.tag, iconURL: interaction.user.displayAvatarURL() })
-						.setDescription(`Seems you already did the setup. To change your feeds channel, please use the \`/free-eg channel\` command.`).setTimestamp().setFooter({ text: ' • Rss' })
+						.setDescription(`Seems you haven't did the setup. To setup for your free games feed, please use the \`/free-eg setup\` command.`).setTimestamp().setFooter({ text: ' • Rss' })
 					return await interaction.reply({ embeds: [errEmbed], ephemeral: true });
 				}
-				await redis.hset(`epicGuilds_:${guildId}.freeEpicGamesSettings`, { online: true })
+				await redis.hSet(`epicGuilds_:${guildId}:freeEpicGamesSettings`, { online: "true" })
 				var onEmbed = new EmbedBuilder()
 					.setAuthor({ name: interaction.user.tag, iconURL: interaction.user.displayAvatarURL() })
 					.setTitle(`🟢 Free Games Sender: Activated!`).setTimestamp().setColor('Aqua').setFooter({ text: ' • Epic Games' })
@@ -88,13 +90,13 @@ module.exports = {
 
 				break;
 			case 'off':
-				if (guildExists <= 0) {
+				if (!guildExists) {
 					var errEmbed = new EmbedBuilder()
 						.setTitle('❗Error❗').setAuthor({ name: interaction.user.tag, iconURL: interaction.user.displayAvatarURL() })
-						.setDescription(`Seems you already did the setup. To change your feeds channel, please use the \`/free-eg channel\` command.`).setTimestamp().setFooter({ text: ' • Rss' })
+						.setDescription(`Seems you haven't did the setup. To setup for your free games feed, please use the \`/free-eg setup\` command.`).setTimestamp().setFooter({ text: ' • Rss' })
 					return await interaction.reply({ embeds: [errEmbed], ephemeral: true });
 				}
-				await redis.hSet(`epicGuilds_:${guildId}.freeEpicGamesSettings`, { online: false })
+				await redis.hSet(`epicGuilds_:${guildId}:freeEpicGamesSettings`, { online: false })
 				var onEmbed = new EmbedBuilder()
 					.setAuthor({ name: interaction.user.tag, iconURL: interaction.user.displayAvatarURL() })
 					.setTitle(`🔴 Free Games Sender: Deactivated`)
@@ -106,12 +108,12 @@ module.exports = {
 
 				break;
 			case 'info':
-				var channelId = await redis.hGet(`epicGuilds_:${guildId}.freeEpicGamesSettings`, 'channelId')
-				var online = await redis.hGet(`epicGuilds_:${guildId}.freeEpicGamesSettings`, 'online')
+				var channelId = await redis.hGet(`epicGuilds_:${guildId}:freeEpicGamesSettings`, 'channelId')
+				var online = await redis.hGet(`epicGuilds_:${guildId}:freeEpicGamesSettings`, 'online')
 				if (guildExists <= 0) {
 					var errEmbed = new EmbedBuilder()
 						.setTitle('❗Error❗').setAuthor({ name: interaction.user.tag, iconURL: interaction.user.displayAvatarURL() })
-						.setDescription(`Seems you already did the setup. To change your feeds channel, please use the \`/free-eg channel\` command.`).setTimestamp().setFooter({ text: ' • Rss' })
+						.setDescription(`Seems you haven't did the setup. To setup for your free games feed, please use the \`/free-eg setup\` command.`).setTimestamp().setFooter({ text: ' • Rss' })
 					return await interaction.reply({ embeds: [errEmbed], ephemeral: true });
 				}
 				const listEmbed = new EmbedBuilder()

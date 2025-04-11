@@ -2,7 +2,6 @@
 const { Client, REST, Routes, SlashCommandBuilder } = require('discord.js');
 const { readdirSync } = require('node:fs');
 const { join } = require('node:path');
-const Config = require('../config.js');
 
 module.exports = async (client) => {
     const slashCommands = [];

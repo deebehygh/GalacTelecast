@@ -16,12 +16,8 @@ module.exports = {
         switch (subCommand) {
             case 'setup':
                 let channel = message.mentions.channels.first();
-                if (guildExists >= 1) {
-                    var errEmbed = new EmbedBuilder()
-                        .setTitle('❗Error❗')
-                        .setDescription(`Seems you already did the setup. To change your feeds channel, please use the \`/free-eg channel\` command.`).setTimestamp().setFooter({ text: ' • Rss' })
-                    return await message.reply({ embeds: [errEmbed], ephemeral: true });
-                }
+                console.log(guildExists)
+                
                 var sucEmbed = new EmbedBuilder()
                     .addFields(
                         { name: '📓 Channel Log', value: `${channel}`, inline: true },
@@ -32,7 +28,9 @@ module.exports = {
                     .setFooter({ text: ' • Epic Games' })
 
                 await client.redis.sAdd(`epicGuilds_:gList_`, message.guildId);
-                await client.redis.hSet(`epicGuilds_:${message.guildId}.freeEpicGamesSettings`, { online: 0, channelId: channel.id, totalNumGamesPosted: 0 });
+                await client.redis.hSet(`epicGuilds_:${message.guildId}.freeEpicGamesSettings`, { online: "0" });
+                await client.redis.hSet(`epicGuilds_:${message.guildId}.freeEpicGamesSettings`, { channelId: `${channel.id}` });
+                await client.redis.hSet(`epicGuilds_:${message.guildId}.freeEpicGamesSettings`, { totalNumGamesPosted: "0" });
                 await message.channel.send({ embeds: [sucEmbed], ephemeral: true })
                 console.log(`[${message.guildId}]: ${message.author.username} created a new Epic Games database file.`);
                 break;

@@ -1,4 +1,3 @@
-//@ts-check
 const { EpicFreeGames } = require("epic-free-games");
 const { EmbedBuilder, ActivityType } = require('discord.js');
 const { ExtClient } = require('../ext/ExtClient.js');
@@ -17,8 +16,8 @@ class ExtFreeGames extends EpicFreeGames {
 		if (gameList.includes(currentGame.title)) return;
 		let epicEmbed = new EmbedBuilder()
 			.setTitle('[Discounted Games]: ' + currentGame.title)
-			.setThumbnail(currentGame.keyImages[0].url)
-			.setDescription(currentGame.description)
+			.setThumbnail(currentGame.keyImages[0].url || "")
+			.setDescription(currentGame.description || "No description available")
 			.setColor('Navy')
 			.setImage(currentGame.keyImages[0].url)
 			.addFields(
@@ -34,13 +33,13 @@ class ExtFreeGames extends EpicFreeGames {
 		let guilds = await this.client.redis.sMembers('epicGuilds_:gList_');
 		if (!guilds) return;
 		for (let guildId of guilds) {
-			let online = await this.client.redis.hGet(`epicGuilds_:${guildId}.freeEpicGamesSettings`, `online`)
-			let gameList = await this.client.redis.sMembers(`epicGuilds_:${guildId}.recordedGames`)
+			let online = await this.client.redis.hGet(`epicGuilds_:${guildId}:freeEpicGamesSettings`, `online`)
+			let gameList = await this.client.redis.sMembers(`epicGuilds_:${guildId}:recordedGames`)
 			if (!online) return;
 			this.getGames().then(async res => {
 				let epicEmbed = await this.build_embed(gameList, res);
-				await this.client.redis.sAdd(`epicGuilds_:${guildId}.recordedGames`, res.currentGames[0].title);
-				let guildChannel = await this.client.redis.hGet(`epicGuilds_:${guildId}.freeEpicGamesSettings`, `channelId`)
+				await this.client.redis.sAdd(`epicGuilds_:${guildId}:recordedGames`, res.currentGames[0].title);
+				let guildChannel = await this.client.redis.hGet(`epicGuilds_:${guildId}:freeEpicGamesSettings`, `channelId`)
 				let channel = this.client.channels.cache.get(String(guildChannel))
 				await channel?.send({ embeds: [epicEmbed] })
 			}).catch(err => {

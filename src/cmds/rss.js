@@ -1,4 +1,3 @@
-//@ts-check
 const { EmbedBuilder, PermissionFlagsBits, Message } = require("discord.js");
 const { isValidURL, to, website_status } = require('../ext/ExtFunctions.js');
 const { ExtClient } = require('../ext/ExtClient.js');

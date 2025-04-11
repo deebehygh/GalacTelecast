@@ -1,5 +1,4 @@
 const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits, ChannelType, BaseInteraction } = require('discord.js');
-const config = require('../config.js');
 
 module.exports = {
     data: new SlashCommandBuilder()

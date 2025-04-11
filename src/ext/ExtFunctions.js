@@ -1,4 +1,3 @@
-//@ts-check
 const { Guild, GuildMember, PermissionFlagsBits, PermissionsBitField, TextChannel, Message, GuildChannel, BaseChannel } = require("discord.js");
 const { ExtClient } = require('./ExtClient.js');
 const http = require('http');
@@ -100,10 +99,17 @@ const isValidURL = (/** @type {String}*/ string) => {
 const create_guild_keys = async (client, /** @type {any}*/ guild) => {
     let rssGuilds = await client.redis.sIsMember('rssGuilds_:gList_', guild);
 
-    if (!rssGuilds) {
-        await client.redis.sAdd('rssGuilds_:gList_', guild);
-        await client.redis.hSet(`rssGuilds_:${guild}.feedSettings`, { online: false, totalFeedsSent: 0, timer: 60 })
-    } else { client.logger.error('This guild already exists in the rss database') }
+    try {
+        if (!rssGuilds) {
+            await client.redis.sAdd('rssGuilds_:gList_', guild);
+            await client.redis.hSet(`rssGuilds_:${guild}.feedSettings`, { online: "false" })
+            await client.redis.hSet(`rssGuilds_:${guild}.feedSettings`, { timer: "60" })
+            await client.redis.hSet(`rssGuilds_:${guild}.feedSettings`, { totalFeedsSent: "0" })
+        } else { client.logger.error('This guild already exists in the rss database') }
+    } catch (error) {
+        console.error(error);
+    }
+
 
     await client.logger.info('Created new keys for: ' + guild);
 }
@@ -133,14 +139,14 @@ const to = (/** @type {any} */ promise) => {
         .catch((/** @type {any} */ err) => [err]);
 }
 
-module.exports = { 
-    Logger, 
-    to, 
-    checkPermissions, 
-    sendTimedMessage, 
-    isValidURL, 
-    create_guild_keys, 
-    delete_guild_keys, 
-    update_guild_database, 
+module.exports = {
+    Logger,
+    to,
+    checkPermissions,
+    sendTimedMessage,
+    isValidURL,
+    create_guild_keys,
+    delete_guild_keys,
+    update_guild_database,
     website_status
 }

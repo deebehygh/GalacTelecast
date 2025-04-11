@@ -1,12 +1,13 @@
-// @ts-check
 const { EmbedBuilder, ActivityType, ButtonBuilder, ButtonStyle, ActionRowBuilder, Client } = require('discord.js');
+const { updateFeeds, totalFeedsSend, getOnlineStatus, getFeedsList } = require('./ExtRedis.js');
 const { isValidURL, to } = require('./ExtFunctions.js');
 const { ExtClient } = require('./ExtClient.js');
 const { setInterval } = require('node:timers');
 
-const Config = require('../config.js');
 const Parser = require("rss-parser");
 const stripTags = require("striptags");
+const config = require('../config/config.js');
+
 
 class ExtRss extends Parser {
     constructor(/**@type {ExtClient}*/ client) {
@@ -34,24 +35,13 @@ class ExtRss extends Parser {
         return this.data_contains(feedData, 'title', `${newData['items'][0]['title']}`);
     }
 
-    total_feeds_sent = async () => {
-        let TSF = this.client.redis.get('totalFeedsSent');
-        if (TSF === null || !TSF) this.client.redis.set('totalFeedsSent', 1)
-        else this.client.redis.incrBy('totalFeedsSent', 1);
-    }
-
     log_feed_data = async (guildId, newData, idx) => {
         let [feedDataErr, feedData] = await to(this.client.redis.json.get(`rssGuilds_:${guildId}:feeds`));
-        let [fdsErr, fds] = await to(this.client.redis.json.get(`rssGuilds_:${guildId}:feedList`));
+        let [fdsErr, fds] = await getFeedsList(guildId);
         if (feedDataErr) this.client.logger.error(feedDataErr);
         else if (fdsErr) this.client.logger.error(fdsErr);
 
-        if (!feedData) {
-            await this.client.redis.json.set(`rssGuilds_:${guildId}:feeds`, `$`, [{ title: newData.items[0].title, link: newData.items[0].link, pub: newData.items[0].pubDate, content: newData.items[0].content }])
-        } else {
-            await this.client.redis.json.arrAppend(`rssGuilds_:${guildId}:feeds`, `$`, { title: newData.items[0].title, link: newData.items[0].link, pub: newData.items[0].pubDate, content: newData.items[0].content });
-            await this.client.redis.json.numIncrBy(`rssGuilds_:${guildId}:feedList`, `$.feeds[${idx}].feedsReceived`, 1);
-        }
+        await updateFeeds(feedData, guildId, newData, idx);
     }
 
     makeEmbeds = async (newFeed, channel) => {
@@ -60,33 +50,33 @@ class ExtRss extends Parser {
         let rssEmbed = new EmbedBuilder().setTitle(newFeed?.title).setColor(0x753cf0).setTimestamp()
         let regex = /(?:http).+(?::\/\/).+\..+/g;
         channel = this.client.channels?.cache.get(channel);
-        if (newFeed.image.url && newFeed.image.url.match(regex)) rssEmbed.setImage(newFeed.image.url)
-        else if (newFeed.image.link && newFeed.image.link.match(regex)) rssEmbed.setImage(newFeed.image.link)
+        //if (newFeed.image.url && newFeed.image.url.match(regex)) rssEmbed.setImage(newFeed.image.url)
+        //else if (newFeed.image.link && newFeed.image.link.match(regex)) rssEmbed.setImage(newFeed.image.link)
         if (newFeed.link.match(regex) && newFeed.link) rssEmbed.setURL(newFeed.link)
 
         rssEmbed.addFields({
             name: `${newFeed.items[0].title}`,
             value: `*${stripTags(newFeed.items[0].content)}*`
         })
-        //actionRow.addComponents(newButton);
+       // actionRow.addComponents(newButton);
         channel?.send({ embeds: [rssEmbed] });
     }
 
     fetch_feeds = async (/**@type {any}*/ guildId) => {
-        let online = await this.client.redis.hGet(`rssGuilds_:${guildId}:feedSettings`, 'online');
-        let feed_list = await this.client.redis.json.get(`rssGuilds_:${guildId}:feedList`);
+        let online = await getOnlineStatus(guildId);
+        let feed_list = await getFeedsList(guildId);
 
         if (!Boolean(online) || online === 'false') return;
         if (Object.entries(feed_list["feeds"]).length <= 0) return;
         try {
             for (let [id, fds] of Object.entries(feed_list["feeds"])) {
-                let [newFeedErr, newFeed] = await to(this.parseURL(fds.url));
-                let [itEqualsErr, itEquals] = await to(this.data_exists(guildId, newFeed, id));
+                let newFeed = await this.parseURL(fds.url);
+                let itEquals = await this.data_exists(guildId, newFeed, id);
 
                 if (itEquals) return await this.client.logger.event(`[${guildId}] No New Feeds`);
                 await this.makeEmbeds(newFeed, fds.channel);
                 await this.log_feed_data(guildId, newFeed, id);
-                await this.total_feeds_sent();
+                await totalFeedsSend();
             }
         } catch (error) {
             let uriErr = new EmbedBuilder().setDescription(`${error}`).setColor('Red').setTimestamp().setFooter({ text: `Rss Error • ${guildId}` })
@@ -100,7 +90,7 @@ class ExtRss extends Parser {
         if (guilds.length <= 0) return;
         for (let guild of guilds) {
             let timerr = await this.client.redis.hGet(`rssGuilds_:${guild}:feedSettings`, `timer`);
-            if (!Config.inDev) 
+            if (!config.indev) 
                 setInterval(this.fetch_feeds, 1000 * 60 * Number(timerr), guild);
             else
                 setInterval(this.fetch_feeds, 1000 * 60 * Number(timerr), '721160858624851968');
